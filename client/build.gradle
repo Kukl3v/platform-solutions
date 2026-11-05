@@ -1,0 +1,32 @@
+import io.clroot.gradle.bun.task.BunTask
+
+plugins {
+	id 'io.clroot.gradle-bun' version '0.1.0'
+}
+
+group = 'ru.kuklev'
+version = '0.0.1'
+description = 'Client math calculation service'
+
+bun {
+    version = '1.4.0'
+}
+
+repositories {
+	mavenCentral()
+}
+
+tasks.register('buildFrontend', BunTask) {
+	dependsOn('bunInstall')
+	args = ['run', 'build']
+
+	inputs.dir('src')
+	inputs.file('package.json')
+
+	outputs.dir('dist')
+}
+
+tasks.register('runDev', BunTask) {
+	dependsOn('bunInstall')
+	args = ['run', 'dev']
+}

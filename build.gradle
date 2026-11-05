@@ -1,0 +1,13 @@
+tasks.register('buildMonolith') {
+    group = 'build'
+    description = 'Build Spring Boot JAR with Svelte frontend.'
+
+    dependsOn(':server:bootJar')
+}
+
+tasks.register('buildSeparate') {
+    group = 'build'
+    description = 'Build Spring Boot JAR and separate Svelte frontend.'
+
+    dependsOn(':server:bootJar', ':client:buildFrontend')
+}

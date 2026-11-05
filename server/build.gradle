@@ -1,0 +1,55 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.2'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'ru.kuklev'
+version = '0.0.1'
+description = 'Server math calculation service'
+
+def includeFrontend = providers.gradleProperty('includeFrontend')
+		.map { it.toBoolean() }
+		.getOrElse(false)
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+configurations {
+	mockitoAgent
+}
+
+dependencies {
+	implementation "org.springframework.boot:spring-boot-starter-web"
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	mockitoAgent('org.mockito:mockito-core') {
+		transitive = false
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+	jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
+}
+
+
+if (includeFrontend) {
+	tasks.named('processResources') {
+		dependsOn(':client:buildFrontend')
+
+		from(project(':client').layout.buildDirectory.dir('dist')) {
+			into 'static'
+		}
+	}
+}
