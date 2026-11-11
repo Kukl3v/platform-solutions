@@ -34,6 +34,8 @@
         <hr>
         <h5 class="mb-3">Матрица</h5>
         <div th:replace="~{fragments/components :: matrixGrid}"></div>
+        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('matrixShapeValid')}"
+             th:errors="*{matrixShapeValid}"></div>
     </form>
 
 </section>

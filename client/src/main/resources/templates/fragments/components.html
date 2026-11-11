@@ -21,16 +21,22 @@
     </div>
 </th:block>
 
-<div th:fragment="matrixGrid" style="overflow-x: auto; max-width: 100%;">
-    <div class="d-flex flex-column gap-2" style="width: max-content;">
-        <div class="d-flex gap-2" th:each="row, i : *{matrix}">
-            <div style="width: 85px;" th:each="cell, j : ${row}">
-                <input type="number" step="1" required class="form-control"
-                       th:field="*{matrix[__${i.index}__][__${j.index}__]}">
+<th:block th:fragment="matrixGrid">
+    <div style="overflow: auto; max-width: 100%; max-height: 60vh;">
+        <div class="d-flex flex-column gap-2" style="width: max-content;">
+            <div class="d-flex gap-2" th:each="row, i : *{matrix}">
+                <div style="width: 85px;" th:each="cell, j : ${row}">
+                    <input type="number" step="1" required class="form-control" th:errorclass="is-invalid"
+                           th:field="*{matrix[__${i.index}__][__${j.index}__]}">
+                    <div class="invalid-feedback"
+                         th:errors="*{matrix[__${i.index}__][__${j.index}__]}"></div>
+                </div>
             </div>
         </div>
     </div>
-</div>
+    <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('matrix')}"
+         th:errors="*{matrix}"></div>
+</th:block>
 
 </body>
 </html>
