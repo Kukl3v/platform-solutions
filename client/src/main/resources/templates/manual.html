@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'manual')}">
+<body>
+<section th:fragment="content" th:object="${form}">
+
+    <form th:action="@{/manual/average}" method="post">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-12 col-md-3 order-last">
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success">Найти среднее</button>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <div th:replace="~{fragments/components :: numberField('rows', 'Строки', 1, 100)}"></div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div th:replace="~{fragments/components :: numberField('cols', 'Колонки', 1, 100)}"></div>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-secondary"
+                            th:formaction="@{/manual/resize}" formnovalidate>
+                        Изменить размер
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div th:replace="~{fragments/components :: alerts}"></div>
+
+        <hr>
+        <h5 class="mb-3">Матрица</h5>
+        <div th:replace="~{fragments/components :: matrixGrid}"></div>
+    </form>
+
+</section>
+</body>
+</html>

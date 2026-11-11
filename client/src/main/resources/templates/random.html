@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'random')}">
+<body>
+<section th:fragment="content" th:object="${form}">
+
+    <form th:action="@{/random/generate}" method="post">
+        <div class="row g-3 align-items-end">
+            <div class="col-6 col-md-2">
+                <div th:replace="~{fragments/components :: numberField('rows', 'Строки', 1, 100)}"></div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div th:replace="~{fragments/components :: numberField('cols', 'Колонки', 1, 100)}"></div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div th:replace="~{fragments/components :: numberField('minNum', 'Минимальное число', null, null)}"></div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div th:replace="~{fragments/components :: numberField('maxNum', 'Максимальное число', null, null)}"></div>
+            </div>
+            <div class="col-12 col-md-2">
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Сгенерировать</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div th:replace="~{fragments/components :: alerts}"></div>
+
+    <th:block th:if="*{matrix != null}">
+        <hr>
+        <form th:action="@{/random/average}" method="post">
+            <input type="hidden" th:field="*{rows}">
+            <input type="hidden" th:field="*{cols}">
+            <input type="hidden" th:field="*{minNum}">
+            <input type="hidden" th:field="*{maxNum}">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Матрица</h5>
+                <button type="submit" class="btn btn-outline-success">Найти среднее</button>
+            </div>
+
+            <div th:replace="~{fragments/components :: matrixGrid}"></div>
+        </form>
+    </th:block>
+
+</section>
+</body>
+</html>

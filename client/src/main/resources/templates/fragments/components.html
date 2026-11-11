@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="numberField(field, label, min, max)">
+    <label class="form-label" th:for="${field}" th:text="${label}"></label>
+    <input type="number" step="1" required class="form-control"
+           th:field="*{__${field}__}"
+           th:errorclass="is-invalid"
+           th:min="${min}" th:max="${max}">
+    <div class="invalid-feedback" th:if="${#fields.hasErrors(field)}"
+         th:errors="*{__${field}__}"></div>
+</div>
+
+<th:block th:fragment="alerts">
+    <div class="alert alert-danger mt-3 mb-0" th:each="err : ${#fields.globalErrors()}"
+         th:text="${err}"></div>
+
+    <div class="alert alert-success mt-3 mb-0" th:if="${average != null}">
+        <strong>Среднее арифметическое:</strong> <span th:text="${average}"></span>
+    </div>
+</th:block>
+
+<div th:fragment="matrixGrid" style="overflow-x: auto; max-width: 100%;">
+    <div class="d-flex flex-column gap-2" style="width: max-content;">
+        <div class="d-flex gap-2" th:each="row, i : *{matrix}">
+            <div style="width: 85px;" th:each="cell, j : ${row}">
+                <input type="number" step="1" required class="form-control"
+                       th:field="*{matrix[__${i.index}__][__${j.index}__]}">
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

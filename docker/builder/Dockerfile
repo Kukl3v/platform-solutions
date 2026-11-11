@@ -1,11 +1,7 @@
 FROM eclipse-temurin:25-jdk-jammy
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl \
-        unzip \
-        git \
+    && apt-get install -y --no-install-recommends ca-certificates curl unzip git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
