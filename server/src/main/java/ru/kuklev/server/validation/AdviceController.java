@@ -1,5 +1,8 @@
 package ru.kuklev.server.validation;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -14,10 +17,11 @@ import java.util.List;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class AdviceController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AdviceController.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidationException(
-            MethodArgumentNotValidException e) {
+    public ProblemDetail handleValidationException(MethodArgumentNotValidException e,
+                                                   HttpServletRequest request) {
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
@@ -38,6 +42,13 @@ public class AdviceController {
                 .toList();
 
         problem.setProperty("errors", errors);
+
+        LOGGER.error("API error: [{}, instance={}, status={}, title={} errors={}]",
+                problem.getDetail(),
+                request.getRequestURI(),
+                problem.getStatus(),
+                problem.getTitle(),
+                errors);
 
         return problem;
     }
