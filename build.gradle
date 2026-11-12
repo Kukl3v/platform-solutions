@@ -1,6 +1,0 @@
-tasks.register('buildApp') {
-    group = 'build'
-    description = 'Build Spring Boot JAR with Svelte frontend.'
-
-    dependsOn(':server:bootJar', ':client:buildFrontend')
-}

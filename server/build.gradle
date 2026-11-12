@@ -8,10 +8,6 @@ group = 'ru.kuklev'
 version = '0.0.1'
 description = 'Server math calculation service'
 
-def includeFrontend = providers.gradleProperty('includeFrontend')
-		.map { it.toBoolean() }
-		.getOrElse(false)
-
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(25)
@@ -41,15 +37,4 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 	jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
-}
-
-
-if (includeFrontend) {
-	tasks.named('processResources') {
-		dependsOn(':client:buildFrontend')
-
-		from(project(':client').layout.buildDirectory.dir('dist')) {
-			into 'static'
-		}
-	}
 }
