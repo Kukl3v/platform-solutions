@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh './gradlew :monolith:bootJar --no-daemon'
+                sh 'bash ./gradlew :monolith:bootJar --no-daemon'
             }
         }
     }
