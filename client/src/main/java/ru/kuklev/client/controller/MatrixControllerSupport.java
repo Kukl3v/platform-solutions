@@ -1,6 +1,9 @@
 package ru.kuklev.client.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import ru.kuklev.client.dto.error.ProblemResponse;
 import ru.kuklev.client.dto.error.ValidationError;
@@ -12,10 +15,13 @@ final class MatrixControllerSupport {
             "rows", "cols", "minNum", "maxNum", "matrix"
     );
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MatrixControllerSupport.class);
+
     private MatrixControllerSupport() {
     }
 
     static void addServerErrors(RestClientResponseException exception, BindingResult bindingResult) {
+        LOGGER.error("[SERVER ERROR]: {}", exception.getMessage());
         ProblemResponse problem = readProblem(exception);
         if (problem != null && problem.errors() != null && !problem.errors().isEmpty()) {
             for (ValidationError error : problem.errors()) {
@@ -35,7 +41,8 @@ final class MatrixControllerSupport {
         bindingResult.reject("server.error", message);
     }
 
-    static void addConnectionError(BindingResult bindingResult) {
+    static void addConnectionError(RestClientException exception, BindingResult bindingResult) {
+        LOGGER.error("[CONNECTION ERROR]: {}", exception.getMessage());
         bindingResult.reject("server.unavailable", "Не удалось получить ответ от сервера");
     }
 

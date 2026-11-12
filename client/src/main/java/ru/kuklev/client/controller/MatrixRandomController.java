@@ -1,6 +1,8 @@
 package ru.kuklev.client.controller;
 
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -20,6 +22,8 @@ import ru.kuklev.client.validation.MatrixCalculation;
 @Controller
 public class MatrixRandomController {
     private final MatrixClient matrixClient;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MatrixRandomController.class);
 
     public MatrixRandomController(MatrixClient matrixClient) {
         this.matrixClient = matrixClient;
@@ -47,11 +51,12 @@ public class MatrixRandomController {
             MatrixResponse response = matrixClient.getMatrix(
                     form.getRows(), form.getCols(), form.getMinNum(), form.getMaxNum()
             );
+            LOGGER.info("[SERVER RESPONSE] getMatrix: {}", response);
             form.setMatrix(response.matrix());
         } catch (RestClientResponseException exception) {
             MatrixControllerSupport.addServerErrors(exception, bindingResult);
         } catch (RestClientException exception) {
-            MatrixControllerSupport.addConnectionError(bindingResult);
+            MatrixControllerSupport.addConnectionError(exception, bindingResult);
         }
         return "random";
     }
@@ -68,11 +73,12 @@ public class MatrixRandomController {
             MatrixAverageResponse response = matrixClient.calculateAverage(
                     new MatrixCalculateRequest(form.getMatrix())
             );
+            LOGGER.info("[SERVER RESPONSE] calculateAverage: {}", response);
             model.addAttribute("average", response.average());
         } catch (RestClientResponseException exception) {
             MatrixControllerSupport.addServerErrors(exception, bindingResult);
         } catch (RestClientException exception) {
-            MatrixControllerSupport.addConnectionError(bindingResult);
+            MatrixControllerSupport.addConnectionError(exception, bindingResult);
         }
         return "random";
     }

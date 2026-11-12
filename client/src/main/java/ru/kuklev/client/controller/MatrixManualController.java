@@ -1,10 +1,12 @@
 package ru.kuklev.client.controller;
 
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.SmartValidator;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,11 +21,11 @@ import ru.kuklev.client.validation.MatrixCalculation;
 @Controller
 public class MatrixManualController {
     private final MatrixClient matrixClient;
-    private final SmartValidator validator;
 
-    public MatrixManualController(MatrixClient matrixClient, SmartValidator validator) {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MatrixManualController.class);
+
+    public MatrixManualController(MatrixClient matrixClient) {
         this.matrixClient = matrixClient;
-        this.validator = validator;
     }
 
     @GetMapping("/manual")
@@ -45,10 +47,10 @@ public class MatrixManualController {
     }
 
     @PostMapping("/manual/average")
-    public String calculateAverage(@ModelAttribute("form") ManualMatrixForm form,
+    public String calculateAverage(@Validated(MatrixCalculation.class)
+                                   @ModelAttribute("form") ManualMatrixForm form,
                                    BindingResult bindingResult,
                                    Model model) {
-        validator.validate(form, bindingResult, MatrixCalculation.class);
         if (bindingResult.hasErrors()) {
             return "manual";
         }
@@ -57,11 +59,12 @@ public class MatrixManualController {
             MatrixAverageResponse response = matrixClient.calculateAverage(
                     new MatrixCalculateRequest(form.getMatrix())
             );
+            LOGGER.info("[SERVER RESPONSE] calculateAverage: {}", response);
             model.addAttribute("average", response.average());
         } catch (RestClientResponseException exception) {
             MatrixControllerSupport.addServerErrors(exception, bindingResult);
         } catch (RestClientException exception) {
-            MatrixControllerSupport.addConnectionError(bindingResult);
+            MatrixControllerSupport.addConnectionError(exception, bindingResult);
         }
         return "manual";
     }
