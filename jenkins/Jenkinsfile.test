@@ -1,0 +1,23 @@
+pipeline {
+    agent {
+        docker {
+            image 'kuklev/builder:0.0.1'
+            args '-v gradle-cache:/tmp/gradle-home'
+        }
+    }
+
+    stages {
+        stage('Unit Tests') {
+            steps {
+                sh 'bash ./gradlew :server:test :client:test --no-daemon'
+            }
+        }
+    }
+
+    post {
+        always {
+            junit testResults: 'server/build/test-results/test/*.xml,client/build/test-results/test/*.xml',
+                  allowEmptyResults: false
+        }
+    }
+}

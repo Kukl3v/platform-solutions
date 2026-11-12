@@ -1,0 +1,23 @@
+pipeline {
+    agent {
+        docker {
+            image 'kuklev/builder:0.0.1'
+            args '-v gradle-cache:/tmp/gradle-home'
+        }
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                sh 'bash ./gradlew :server:bootJar :client:bootJar --no-daemon'
+            }
+        }
+    }
+
+    post {
+        success {
+            archiveArtifacts artifacts: 'server/build/libs/*.jar,client/build/libs/*.jar',
+                             fingerprint: true
+        }
+    }
+}
