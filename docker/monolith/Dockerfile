@@ -2,7 +2,7 @@ FROM gcr.io/distroless/java25-debian12:nonroot
 
 WORKDIR /application
 
-ARG JAR_FILE=server/build/libs/server-0.0.1.jar
+ARG JAR_FILE=monolith/build/libs/monolith-0.0.1.jar
 
 COPY ${JAR_FILE} app.jar
 

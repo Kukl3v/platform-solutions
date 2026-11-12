@@ -1,2 +1,2 @@
 rootProject.name = 'platformsalns'
-include('server', 'client')
+include('monolith')
