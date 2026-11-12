@@ -19,6 +19,8 @@ import ru.kuklev.client.dto.MatrixResponse;
 import ru.kuklev.client.model.RandomMatrixForm;
 import ru.kuklev.client.validation.MatrixCalculation;
 
+import java.util.Arrays;
+
 @Controller
 public class MatrixRandomController {
     private final MatrixClient matrixClient;
@@ -51,7 +53,7 @@ public class MatrixRandomController {
             MatrixResponse response = matrixClient.getMatrix(
                     form.getRows(), form.getCols(), form.getMinNum(), form.getMaxNum()
             );
-            LOGGER.info("[SERVER RESPONSE] getMatrix: {}", response);
+            LOGGER.info("[SERVER RESPONSE] getMatrix: {}", Arrays.deepToString(response.matrix()));
             form.setMatrix(response.matrix());
         } catch (RestClientResponseException exception) {
             MatrixControllerSupport.addServerErrors(exception, bindingResult);
