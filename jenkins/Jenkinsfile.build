@@ -7,6 +7,16 @@ pipeline {
     }
 
     stages {
+        stage('Diagnostics') {
+            steps {
+                sh '''
+                    id
+                    echo "HOME=$HOME"
+                    echo "GRADLE_USER_HOME=$GRADLE_USER_HOME"
+                    ls -ld /tmp/gradle-home
+                '''
+            }
+        }
         stage('Build') {
             steps {
                 sh 'bash ./gradlew :monolith:bootJar --no-daemon'
