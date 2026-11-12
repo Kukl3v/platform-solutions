@@ -1,0 +1,23 @@
+pipeline {
+    agent {
+        docker {
+            image 'kuklev/builder:0.0.1'
+            args '-v gradle-cache:/root/.gradle'
+        }
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                sh './gradlew :monolith:bootJar --no-daemon'
+            }
+        }
+    }
+
+    post {
+        success {
+            archiveArtifacts artifacts: 'monolith/build/libs/*.jar',
+                             fingerprint: true
+        }
+    }
+}
