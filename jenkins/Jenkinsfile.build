@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'kuklev/builder:0.0.1'
-            args '-v gradle-cache:/root/.gradle'
+            args '-v gradle-cache:/tmp/gradle-home'
         }
     }
 
