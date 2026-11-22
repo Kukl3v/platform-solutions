@@ -12,7 +12,9 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
 {
     private readonly MatrixStorageService storage;
     private readonly MatrixColumnSorter sorter;
+    private readonly MatrixComparisonService comparisonService;
     private readonly CancellationTokenSource lifetimeCancellation = new();
+    private CancellationTokenSource? comparisonCancellation;
     private MatrixDescriptor? matrix;
 
     [ObservableProperty]
@@ -52,10 +54,29 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
     [ObservableProperty]
     private string statusMessage = "Задайте параметры и создайте матрицу.";
 
-    public MainViewModel(MatrixStorageService storage, MatrixColumnSorter sorter)
+    [ObservableProperty]
+    private string firstMatrixPath = string.Empty;
+
+    [ObservableProperty]
+    private string secondMatrixPath = string.Empty;
+
+    [ObservableProperty]
+    private bool isComparing;
+
+    [ObservableProperty]
+    private long matchCount;
+
+    [ObservableProperty]
+    private string comparisonStatus = "Выберите два TXT-файла для сравнения.";
+
+    public MainViewModel(
+        MatrixStorageService storage,
+        MatrixColumnSorter sorter,
+        MatrixComparisonService comparisonService)
     {
         this.storage = storage;
         this.sorter = sorter;
+        this.comparisonService = comparisonService;
         ErrorsChanged += OnErrorsChanged;
         ValidateAllProperties();
     }
@@ -69,6 +90,11 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
     public string SortButtonText => IsBusy && CurrentOperation == "Сортировка"
         ? "Подождите"
         : "Упорядочить столбцы";
+
+    public string CompareButtonText => IsComparing ? "Сравниваю" : "Сравнить";
+    public bool CanSaveMatrix => matrix is not null && !IsBusy && !IsComparing;
+    public bool CanSelectComparisonFiles => !IsBusy && !IsComparing;
+    public BindingList<string> ComparisonMatches { get; } = [];
 
     public string RowCountError => GetFirstError(nameof(RowCountText));
     public string ColumnCountError => GetFirstError(nameof(ColumnCountText));
@@ -92,11 +118,80 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
                 () => storage.Generate(options, cancellationToken),
                 cancellationToken);
             matrix = descriptor;
+            OnPropertyChanged(nameof(CanSaveMatrix));
             MatrixPresentationChanged?.Invoke(
                 this,
                 new MatrixPresentationChangedEventArgs(descriptor, columnOrder: null));
             StatusMessage = $"Матрица {descriptor.Rows:N0} × {descriptor.Columns:N0} создана.";
         });
+    }
+
+    [RelayCommand]
+    private async Task SaveMatrixCopyAsync(string? destinationPath)
+    {
+        var descriptor = matrix;
+        if (descriptor is null || string.IsNullOrWhiteSpace(destinationPath) || IsBusy || IsComparing)
+        {
+            return;
+        }
+
+        await RunOperationAsync("Сохранение", async cancellationToken =>
+        {
+            await storage.CopyMatrixAsync(descriptor, destinationPath, cancellationToken);
+            StatusMessage = $"Копия матрицы сохранена: {destinationPath}";
+        });
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCompare))]
+    private async Task CompareAsync()
+    {
+        var firstFilePath = FirstMatrixPath;
+        var secondFilePath = SecondMatrixPath;
+        ComparisonMatches.Clear();
+        MatchCount = 0;
+        IsComparing = true;
+        ComparisonStatus = "Индексирую первую матрицу…";
+        comparisonCancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetimeCancellation.Token);
+        var cancellationToken = comparisonCancellation.Token;
+        var progress = new Progress<MatrixComparisonProgress>(ApplyComparisonProgress);
+
+        try
+        {
+            var result = await Task.Run(
+                () => comparisonService.Compare(
+                    firstFilePath,
+                    secondFilePath,
+                    progress,
+                    cancellationToken),
+                cancellationToken);
+
+            MatchCount = result.MatchCount;
+            ComparisonStatus = result.ColumnCountsDiffer
+                ? $"Сравнение завершено. Число столбцов различается ({result.FirstColumnCount} и {result.SecondColumnCount}); полные совпадения строк невозможны."
+                : $"Сравнение завершено. Найдено совпадений: {result.MatchCount:N0}.";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            ComparisonStatus = $"Сравнение отменено. Уже найдено совпадений: {MatchCount:N0}.";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                              InvalidDataException or ArgumentException or OverflowException)
+        {
+            ComparisonStatus = $"Ошибка: {exception.Message}";
+        }
+        finally
+        {
+            comparisonCancellation.Dispose();
+            comparisonCancellation = null;
+            IsComparing = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCancelComparison))]
+    private void CancelComparison()
+    {
+        ComparisonStatus = "Отменяю сравнение…";
+        comparisonCancellation?.Cancel();
     }
 
     [RelayCommand(CanExecute = nameof(CanSortColumns))]
@@ -120,8 +215,12 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
         });
     }
 
-    private bool CanGenerate() => !IsBusy && !HasErrors;
-    private bool CanSortColumns() => !IsBusy && matrix is not null;
+    private bool CanGenerate() => !IsBusy && !IsComparing && !HasErrors;
+    private bool CanSortColumns() => !IsBusy && !IsComparing && matrix is not null;
+    private bool CanCompare() => !IsBusy && !IsComparing &&
+                                 !string.IsNullOrWhiteSpace(FirstMatrixPath) &&
+                                 !string.IsNullOrWhiteSpace(SecondMatrixPath);
+    private bool CanCancelComparison() => IsComparing;
 
     private async Task RunOperationAsync(
         string operation,
@@ -148,6 +247,25 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
         {
             IsBusy = false;
             CurrentOperation = string.Empty;
+        }
+    }
+
+    private void ApplyComparisonProgress(MatrixComparisonProgress progress)
+    {
+        MatchCount = progress.TotalMatches;
+        foreach (var match in progress.RecentMatches)
+        {
+            if (ComparisonMatches.Count == 1000)
+            {
+                ComparisonMatches.RemoveAt(0);
+            }
+
+            ComparisonMatches.Add(match.ToString());
+        }
+
+        if (IsComparing)
+        {
+            ComparisonStatus = $"Сравнение выполняется. Найдено совпадений: {MatchCount:N0}.";
         }
     }
 
@@ -217,6 +335,9 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
         OnPropertyChanged(nameof(SortButtonText));
         GenerateCommand.NotifyCanExecuteChanged();
         SortColumnsCommand.NotifyCanExecuteChanged();
+        CompareCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanSaveMatrix));
+        OnPropertyChanged(nameof(CanSelectComparisonFiles));
     }
 
     partial void OnCurrentOperationChanged(string value)
@@ -225,10 +346,28 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
         OnPropertyChanged(nameof(SortButtonText));
     }
 
+    partial void OnIsComparingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CompareButtonText));
+        OnPropertyChanged(nameof(CanSaveMatrix));
+        OnPropertyChanged(nameof(CanSelectComparisonFiles));
+        GenerateCommand.NotifyCanExecuteChanged();
+        SortColumnsCommand.NotifyCanExecuteChanged();
+        CompareCommand.NotifyCanExecuteChanged();
+        CancelComparisonCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnFirstMatrixPathChanged(string value) => CompareCommand.NotifyCanExecuteChanged();
+
+    partial void OnSecondMatrixPathChanged(string value) => CompareCommand.NotifyCanExecuteChanged();
+
     public void Dispose()
     {
         ErrorsChanged -= OnErrorsChanged;
+        comparisonCancellation?.Cancel();
         lifetimeCancellation.Cancel();
+        comparisonCancellation?.Dispose();
+        lifetimeCancellation.Dispose();
     }
 }
 

@@ -19,8 +19,18 @@ partial class MainForm
     private CheckBox useFractionsCheckBox = null!;
     private Button generateButton = null!;
     private Button sortButton = null!;
+    private Button saveButton = null!;
     private Label statusLabel = null!;
     private MatrixGridVirtual matrixGrid = null!;
+    private TextBox firstMatrixPathTextBox = null!;
+    private TextBox secondMatrixPathTextBox = null!;
+    private Button firstBrowseButton = null!;
+    private Button secondBrowseButton = null!;
+    private Button compareButton = null!;
+    private Button cancelComparisonButton = null!;
+    private Label matchCountLabel = null!;
+    private Label comparisonStatusLabel = null!;
+    private ListBox comparisonMatchesListBox = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -49,13 +59,28 @@ partial class MainForm
         useFractionsCheckBox = new CheckBox();
         generateButton = new Button();
         sortButton = new Button();
+        saveButton = new Button();
         statusLabel = new Label();
         matrixGrid = new MatrixGridVirtual(storage);
+        firstMatrixPathTextBox = new TextBox();
+        secondMatrixPathTextBox = new TextBox();
+        firstBrowseButton = new Button();
+        secondBrowseButton = new Button();
+        compareButton = new Button();
+        cancelComparisonButton = new Button();
+        matchCountLabel = new Label();
+        comparisonStatusLabel = new Label();
+        comparisonMatchesListBox = new ListBox();
 
+        var tabControl = new TabControl();
+        var matrixTab = new TabPage("Матрица");
+        var comparisonTab = new TabPage("Сравнение матриц");
         var rootLayout = new TableLayoutPanel();
         var fieldsLayout = new TableLayoutPanel();
         var buttonsLayout = new TableLayoutPanel();
         var statusLayout = new TableLayoutPanel();
+        var comparisonLayout = new TableLayoutPanel();
+        var comparisonButtonsLayout = new TableLayoutPanel();
 
         SuspendLayout();
 
@@ -88,9 +113,10 @@ partial class MainForm
         useFractionsCheckBox.Text = "Использовать дробные числа";
 
         buttonsLayout.AutoSize = true;
-        buttonsLayout.ColumnCount = 2;
-        buttonsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        buttonsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        buttonsLayout.ColumnCount = 3;
+        buttonsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333F));
+        buttonsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333F));
+        buttonsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334F));
         buttonsLayout.Dock = DockStyle.Top;
         buttonsLayout.RowCount = 1;
         buttonsLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42F));
@@ -100,8 +126,13 @@ partial class MainForm
         sortButton.Dock = DockStyle.Fill;
         sortButton.Margin = new Padding(6, 0, 4, 8);
         sortButton.UseVisualStyleBackColor = true;
+        saveButton.Dock = DockStyle.Fill;
+        saveButton.Margin = new Padding(6, 0, 4, 8);
+        saveButton.Text = "Сохранить";
+        saveButton.UseVisualStyleBackColor = true;
         buttonsLayout.Controls.Add(generateButton, 0, 0);
         buttonsLayout.Controls.Add(sortButton, 1, 0);
+        buttonsLayout.Controls.Add(saveButton, 2, 0);
 
         statusLayout.AutoSize = true;
         statusLayout.ColumnCount = 1;
@@ -125,10 +156,102 @@ partial class MainForm
         rootLayout.Controls.Add(statusLayout, 0, 3);
         rootLayout.Controls.Add(matrixGrid, 0, 4);
 
+        comparisonLayout.ColumnCount = 3;
+        comparisonLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        comparisonLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        comparisonLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        comparisonLayout.Dock = DockStyle.Fill;
+        comparisonLayout.Padding = new Padding(16);
+        comparisonLayout.RowCount = 6;
+        comparisonLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        comparisonLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        comparisonLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        comparisonLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        comparisonLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        comparisonLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        var firstPathLabel = new Label
+        {
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(4, 8, 12, 8),
+            Text = "Первая матрица"
+        };
+        var secondPathLabel = new Label
+        {
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(4, 8, 12, 8),
+            Text = "Вторая матрица"
+        };
+        firstMatrixPathTextBox.Dock = DockStyle.Fill;
+        firstMatrixPathTextBox.Margin = new Padding(4, 5, 8, 5);
+        secondMatrixPathTextBox.Dock = DockStyle.Fill;
+        secondMatrixPathTextBox.Margin = new Padding(4, 5, 8, 5);
+        firstBrowseButton.AutoSize = true;
+        firstBrowseButton.Text = "Обзор…";
+        firstBrowseButton.UseVisualStyleBackColor = true;
+        secondBrowseButton.AutoSize = true;
+        secondBrowseButton.Text = "Обзор…";
+        secondBrowseButton.UseVisualStyleBackColor = true;
+
+        comparisonButtonsLayout.AutoSize = true;
+        comparisonButtonsLayout.ColumnCount = 2;
+        comparisonButtonsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        comparisonButtonsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        comparisonButtonsLayout.Dock = DockStyle.Top;
+        comparisonButtonsLayout.Margin = new Padding(0, 10, 0, 8);
+        comparisonButtonsLayout.RowCount = 1;
+        compareButton.Dock = DockStyle.Fill;
+        compareButton.Height = 36;
+        compareButton.Margin = new Padding(4, 0, 6, 0);
+        compareButton.UseVisualStyleBackColor = true;
+        cancelComparisonButton.Dock = DockStyle.Fill;
+        cancelComparisonButton.Margin = new Padding(6, 0, 4, 0);
+        cancelComparisonButton.Text = "Отменить";
+        cancelComparisonButton.UseVisualStyleBackColor = true;
+        comparisonButtonsLayout.Controls.Add(compareButton, 0, 0);
+        comparisonButtonsLayout.Controls.Add(cancelComparisonButton, 1, 0);
+
+        matchCountLabel.AutoSize = true;
+        matchCountLabel.Font = new Font(
+            SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont,
+            FontStyle.Bold);
+        matchCountLabel.Margin = new Padding(4, 4, 4, 4);
+        comparisonStatusLabel.AutoEllipsis = true;
+        comparisonStatusLabel.AutoSize = true;
+        comparisonStatusLabel.Dock = DockStyle.Fill;
+        comparisonStatusLabel.Margin = new Padding(4, 4, 4, 8);
+        comparisonMatchesListBox.Dock = DockStyle.Fill;
+        comparisonMatchesListBox.HorizontalScrollbar = true;
+        comparisonMatchesListBox.IntegralHeight = false;
+        comparisonMatchesListBox.Margin = new Padding(4, 4, 4, 0);
+
+        comparisonLayout.Controls.Add(firstPathLabel, 0, 0);
+        comparisonLayout.Controls.Add(firstMatrixPathTextBox, 1, 0);
+        comparisonLayout.Controls.Add(firstBrowseButton, 2, 0);
+        comparisonLayout.Controls.Add(secondPathLabel, 0, 1);
+        comparisonLayout.Controls.Add(secondMatrixPathTextBox, 1, 1);
+        comparisonLayout.Controls.Add(secondBrowseButton, 2, 1);
+        comparisonLayout.Controls.Add(comparisonButtonsLayout, 0, 2);
+        comparisonLayout.SetColumnSpan(comparisonButtonsLayout, 3);
+        comparisonLayout.Controls.Add(matchCountLabel, 0, 3);
+        comparisonLayout.SetColumnSpan(matchCountLabel, 3);
+        comparisonLayout.Controls.Add(comparisonStatusLabel, 0, 4);
+        comparisonLayout.SetColumnSpan(comparisonStatusLabel, 3);
+        comparisonLayout.Controls.Add(comparisonMatchesListBox, 0, 5);
+        comparisonLayout.SetColumnSpan(comparisonMatchesListBox, 3);
+
+        matrixTab.Controls.Add(rootLayout);
+        comparisonTab.Controls.Add(comparisonLayout);
+        tabControl.Dock = DockStyle.Fill;
+        tabControl.TabPages.Add(matrixTab);
+        tabControl.TabPages.Add(comparisonTab);
+
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(820, 620);
-        Controls.Add(rootLayout);
+        Controls.Add(tabControl);
         MinimumSize = new Size(620, 480);
         Name = "MainForm";
         StartPosition = FormStartPosition.CenterScreen;

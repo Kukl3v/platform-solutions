@@ -217,6 +217,166 @@ public sealed class MatrixStorageService
         }
     }
 
+    public async Task CopyMatrixAsync(
+        MatrixDescriptor descriptor,
+        string destinationPath,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        var sourcePath = Path.GetFullPath(descriptor.FilePath);
+        var targetPath = Path.GetFullPath(destinationPath);
+        if (string.Equals(sourcePath, targetPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Выберите файл, отличный от рабочего файла матрицы.");
+        }
+
+        var targetDirectory = Path.GetDirectoryName(targetPath) ??
+                              throw new ArgumentException("Не удалось определить папку назначения.");
+        Directory.CreateDirectory(targetDirectory);
+        var temporaryPath = Path.Combine(targetDirectory, $".{Path.GetFileName(targetPath)}-{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            await using (var source = new FileStream(
+                             sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                             1024 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan))
+            await using (var destination = new FileStream(
+                             temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                             1024 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan))
+            {
+                await source.CopyToAsync(destination, cancellationToken);
+                await destination.FlushAsync(cancellationToken);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporaryPath, targetPath, overwrite: true);
+        }
+        catch
+        {
+            TryDelete(temporaryPath);
+            throw;
+        }
+    }
+
+    internal void ScanRows(
+        string filePath,
+        CancellationToken cancellationToken,
+        MatrixRowVisitor visitor)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(visitor);
+
+        using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            1024 * 1024,
+            FileOptions.SequentialScan);
+
+        var readBuffer = ArrayPool<byte>.Shared.Rent(1024 * 1024);
+        var continuedLine = new ArrayBufferWriter<byte>();
+        long absoluteOffset = 0;
+        long lineOffset = 0;
+        var rowNumber = 0;
+
+        try
+        {
+            int bytesRead;
+            while ((bytesRead = stream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var block = readBuffer.AsSpan(0, bytesRead);
+                var segmentStart = 0;
+
+                for (var index = 0; index < block.Length; index++)
+                {
+                    if (block[index] != (byte)'\n')
+                    {
+                        continue;
+                    }
+
+                    var segment = block[segmentStart..index];
+                    if (continuedLine.WrittenCount == 0)
+                    {
+                        VisitRow(segment, lineOffset, ref rowNumber, cancellationToken, visitor);
+                    }
+                    else
+                    {
+                        Append(continuedLine, segment);
+                        VisitRow(continuedLine.WrittenSpan, lineOffset, ref rowNumber, cancellationToken, visitor);
+                        continuedLine.Clear();
+                    }
+
+                    segmentStart = index + 1;
+                    lineOffset = absoluteOffset + segmentStart;
+                }
+
+                if (segmentStart < block.Length)
+                {
+                    Append(continuedLine, block[segmentStart..]);
+                }
+
+                absoluteOffset += bytesRead;
+            }
+
+            if (continuedLine.WrittenCount > 0)
+            {
+                VisitRow(continuedLine.WrittenSpan, lineOffset, ref rowNumber, cancellationToken, visitor);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(readBuffer);
+        }
+    }
+
+    internal FileStream OpenRandomAccessReader(string filePath) => new(
+        filePath,
+        FileMode.Open,
+        FileAccess.Read,
+        FileShare.Read,
+        64 * 1024,
+        FileOptions.RandomAccess);
+
+    internal static byte[] ReadRowBytes(FileStream stream, long offset, int byteCount)
+    {
+        var bytes = new byte[byteCount];
+        stream.Position = offset;
+        stream.ReadExactly(bytes);
+        return bytes;
+    }
+
+    private static void VisitRow(
+        ReadOnlySpan<byte> row,
+        long offset,
+        ref int rowNumber,
+        CancellationToken cancellationToken,
+        MatrixRowVisitor visitor)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!row.IsEmpty && row[^1] == (byte)'\r')
+        {
+            row = row[..^1];
+        }
+
+        var adjustedOffset = offset;
+        if (rowNumber == 0 && row.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }))
+        {
+            row = row[3..];
+            adjustedOffset += 3;
+        }
+
+        rowNumber++;
+        visitor(row, adjustedOffset, row.Length, rowNumber);
+    }
+
+    private static void Append(ArrayBufferWriter<byte> writer, ReadOnlySpan<byte> value)
+    {
+        value.CopyTo(writer.GetSpan(value.Length));
+        writer.Advance(value.Length);
+    }
+
     private static long NextInt64Inclusive(Random random, long minimum, long maximum)
     {
         if (minimum > maximum)
@@ -296,4 +456,10 @@ public sealed class MatrixStorageService
         }
     }
 }
+
+internal delegate void MatrixRowVisitor(
+    ReadOnlySpan<byte> row,
+    long byteOffset,
+    int byteCount,
+    int rowNumber);
 
