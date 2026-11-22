@@ -21,7 +21,6 @@ public sealed class MatrixStorageService
 
     public MatrixDescriptor Generate(
         MatrixGenerationOptions options,
-        IProgress<MatrixProgress>? progress,
         CancellationToken cancellationToken)
     {
         ValidateDimensions(options.Rows, options.Columns);
@@ -82,10 +81,6 @@ public sealed class MatrixStorageService
                     writer.Write('\n');
                     byteOffset = checked(byteOffset + Utf8WithoutBom.GetByteCount(text) + 1L);
 
-                    if ((row & 15) == 0 || row + 1 == options.Rows)
-                    {
-                        progress?.Report(new MatrixProgress(row + 1, options.Rows, "Генерация"));
-                    }
                 }
 
                 offsets[options.Rows] = byteOffset;
@@ -150,6 +145,71 @@ public sealed class MatrixStorageService
             }
 
             return values;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    public string ReadValue(
+        MatrixDescriptor descriptor,
+        int rowIndex,
+        int columnIndex,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, descriptor.Rows);
+        ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, descriptor.Columns);
+
+        var byteCount64 = descriptor.RowOffsets[rowIndex + 1] - descriptor.RowOffsets[rowIndex];
+        if (byteCount64 <= 0 || byteCount64 > int.MaxValue)
+        {
+            throw new InvalidDataException("Некорректная длина строки матрицы.");
+        }
+
+        var byteCount = (int)byteCount64;
+        var buffer = ArrayPool<byte>.Shared.Rent(byteCount);
+        try
+        {
+            using var stream = new FileStream(
+                descriptor.FilePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                64 * 1024,
+                FileOptions.RandomAccess);
+            stream.Position = descriptor.RowOffsets[rowIndex];
+            stream.ReadExactly(buffer.AsSpan(0, byteCount));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var currentColumn = 0;
+            var valueStart = 0;
+            for (var index = 0; index <= byteCount; index++)
+            {
+                var atEnd = index == byteCount || buffer[index] is (byte)'\n' or (byte)'\r';
+                if (!atEnd && buffer[index] != (byte)'\t')
+                {
+                    continue;
+                }
+
+                if (currentColumn == columnIndex)
+                {
+                    return Utf8WithoutBom.GetString(buffer, valueStart, index - valueStart);
+                }
+
+                if (atEnd)
+                {
+                    break;
+                }
+
+                currentColumn++;
+                valueStart = index + 1;
+            }
+
+            throw new InvalidDataException(
+                $"В строке {rowIndex + 1} отсутствует столбец {columnIndex + 1}.");
         }
         finally
         {

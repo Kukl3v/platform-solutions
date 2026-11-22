@@ -52,9 +52,6 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
     [ObservableProperty]
     private string statusMessage = "Задайте параметры и создайте матрицу.";
 
-    [ObservableProperty]
-    private int progressPercentage;
-
     public MainViewModel(MatrixStorageService storage, MatrixColumnSorter sorter)
     {
         this.storage = storage;
@@ -89,10 +86,10 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
         }
 
         var options = CreateOptions();
-        await RunOperationAsync("Генерация", async (progress, cancellationToken) =>
+        await RunOperationAsync("Генерация", async cancellationToken =>
         {
             var descriptor = await Task.Run(
-                () => storage.Generate(options, progress, cancellationToken),
+                () => storage.Generate(options, cancellationToken),
                 cancellationToken);
             matrix = descriptor;
             MatrixPresentationChanged?.Invoke(
@@ -111,10 +108,10 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
             return;
         }
 
-        await RunOperationAsync("Сортировка", async (progress, cancellationToken) =>
+        await RunOperationAsync("Сортировка", async cancellationToken =>
         {
             var order = await Task.Run(
-                () => sorter.Sort(descriptor, progress, cancellationToken),
+                () => sorter.Sort(descriptor, cancellationToken),
                 cancellationToken);
             MatrixPresentationChanged?.Invoke(
                 this,
@@ -128,21 +125,15 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
 
     private async Task RunOperationAsync(
         string operation,
-        Func<IProgress<MatrixProgress>, CancellationToken, Task> action)
+        Func<CancellationToken, Task> action)
     {
         IsBusy = true;
         CurrentOperation = operation;
-        ProgressPercentage = 0;
         StatusMessage = $"{operation}…";
-        var progress = new Progress<MatrixProgress>(value =>
-        {
-            ProgressPercentage = value.Percentage;
-            StatusMessage = $"{value.Stage}: {value.Percentage}%";
-        });
 
         try
         {
-            await action(progress, lifetimeCancellation.Token);
+            await action(lifetimeCancellation.Token);
         }
         catch (OperationCanceledException) when (lifetimeCancellation.IsCancellationRequested)
         {

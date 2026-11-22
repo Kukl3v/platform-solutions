@@ -39,13 +39,6 @@ public partial class MainForm : Form
         BindLabel(generateButton, nameof(MainViewModel.GenerateButtonText));
         BindLabel(sortButton, nameof(MainViewModel.SortButtonText));
 
-        progressBar.DataBindings.Add(
-            nameof(ProgressBar.Value),
-            viewModelSource,
-            nameof(MainViewModel.ProgressPercentage),
-            false,
-            DataSourceUpdateMode.Never);
-
         generateButton.Command = viewModel.GenerateCommand;
         sortButton.Command = viewModel.SortColumnsCommand;
     }

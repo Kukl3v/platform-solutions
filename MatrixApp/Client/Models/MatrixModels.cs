@@ -22,8 +22,3 @@ public sealed record MatrixDescriptor(
     MatrixNumberKind NumberKind,
     long[] RowOffsets);
 
-public readonly record struct MatrixProgress(int Completed, int Total, string Stage)
-{
-    public int Percentage => Total == 0 ? 0 : (int)((long)Completed * 100 / Total);
-}
-

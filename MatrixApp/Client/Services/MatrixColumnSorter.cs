@@ -7,21 +7,19 @@ public sealed class MatrixColumnSorter
 {
     public int[] Sort(
         MatrixDescriptor descriptor,
-        IProgress<MatrixProgress>? progress,
         CancellationToken cancellationToken)
     {
         return descriptor.NumberKind == MatrixNumberKind.Integer
-            ? SortIntegers(descriptor, progress, cancellationToken)
-            : SortFractional(descriptor, progress, cancellationToken);
+            ? SortIntegers(descriptor, cancellationToken)
+            : SortFractional(descriptor, cancellationToken);
     }
 
     private static int[] SortIntegers(
         MatrixDescriptor descriptor,
-        IProgress<MatrixProgress>? progress,
         CancellationToken cancellationToken)
     {
         var minima = new long[descriptor.Columns];
-        ScanRows(descriptor, progress, cancellationToken, (token, column, row) =>
+        ScanRows(descriptor, cancellationToken, (token, column, row) =>
         {
             if (!long.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
             {
@@ -39,11 +37,10 @@ public sealed class MatrixColumnSorter
 
     private static int[] SortFractional(
         MatrixDescriptor descriptor,
-        IProgress<MatrixProgress>? progress,
         CancellationToken cancellationToken)
     {
         var minima = new double[descriptor.Columns];
-        ScanRows(descriptor, progress, cancellationToken, (token, column, row) =>
+        ScanRows(descriptor, cancellationToken, (token, column, row) =>
         {
             if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ||
                 !double.IsFinite(value))
@@ -62,7 +59,6 @@ public sealed class MatrixColumnSorter
 
     private static void ScanRows(
         MatrixDescriptor descriptor,
-        IProgress<MatrixProgress>? progress,
         CancellationToken cancellationToken,
         SpanConsumer consume)
     {
@@ -107,10 +103,6 @@ public sealed class MatrixColumnSorter
                     $"Строка {row + 1} содержит {column} значений вместо {descriptor.Columns}.");
             }
 
-            if ((row & 15) == 0 || row + 1 == descriptor.Rows)
-            {
-                progress?.Report(new MatrixProgress(row + 1, descriptor.Rows, "Сортировка"));
-            }
         }
     }
 

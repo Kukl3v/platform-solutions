@@ -20,7 +20,6 @@ partial class MainForm
     private Button generateButton = null!;
     private Button sortButton = null!;
     private Label statusLabel = null!;
-    private ProgressBar progressBar = null!;
     private MatrixGridVirtual matrixGrid = null!;
 
     protected override void Dispose(bool disposing)
@@ -51,7 +50,6 @@ partial class MainForm
         generateButton = new Button();
         sortButton = new Button();
         statusLabel = new Label();
-        progressBar = new ProgressBar();
         matrixGrid = new MatrixGridVirtual(storage);
 
         var rootLayout = new TableLayoutPanel();
@@ -106,9 +104,8 @@ partial class MainForm
         buttonsLayout.Controls.Add(sortButton, 1, 0);
 
         statusLayout.AutoSize = true;
-        statusLayout.ColumnCount = 2;
+        statusLayout.ColumnCount = 1;
         statusLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        statusLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150F));
         statusLayout.Dock = DockStyle.Top;
         statusLayout.Margin = new Padding(4, 2, 4, 8);
         statusLayout.RowCount = 1;
@@ -116,10 +113,7 @@ partial class MainForm
         statusLabel.AutoSize = true;
         statusLabel.Dock = DockStyle.Fill;
         statusLabel.Padding = new Padding(0, 3, 0, 0);
-        progressBar.Dock = DockStyle.Fill;
-        progressBar.Height = 18;
         statusLayout.Controls.Add(statusLabel, 0, 0);
-        statusLayout.Controls.Add(progressBar, 1, 0);
 
         matrixGrid.BorderStyle = BorderStyle.FixedSingle;
         matrixGrid.Dock = DockStyle.Fill;
