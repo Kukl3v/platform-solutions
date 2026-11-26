@@ -20,13 +20,13 @@ public sealed partial class MainViewModel : ObservableValidator, IDisposable
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Required(ErrorMessage = "Укажите количество строк.")]
-    [WholeNumberRangeText(10, 20_000)]
+    [WholeNumberRangeText(10, 500_000)]
     private string rowCountText = "1000";
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
     [Required(ErrorMessage = "Укажите количество столбцов.")]
-    [WholeNumberRangeText(10, 20_000)]
+    [WholeNumberRangeText(1, 20_000)]
     private string columnCountText = "1000";
 
     [ObservableProperty]

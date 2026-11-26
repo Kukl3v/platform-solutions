@@ -429,7 +429,7 @@ public sealed class MatrixStorageService
 
     private static void ValidateDimensions(int rows, int columns)
     {
-        if (rows is < 1 or > 20_000 || columns is < 1 or > 20_000)
+        if (rows is < 1 or > 500_000 || columns is < 1 or > 20_000)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(rows),
