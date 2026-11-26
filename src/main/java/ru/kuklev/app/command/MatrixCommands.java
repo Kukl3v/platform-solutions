@@ -135,8 +135,8 @@ public class MatrixCommands {
 
         MatrixSortResponse response = matrixService.runSeqMatrixSort();
 
-        console.success(String.format("Однопоточный алгоритм успешно закончил работу за %s сек.\n Матрица (часть %dx%d):\n%s",
-                response.time(),
+        console.success(String.format("Однопоточный алгоритм успешно закончил работу за %.3f мс.\n Матрица (часть %dx%d):\n%s",
+                response.time().toNanos() / 1_000_000.0,
                 MatrixService.MATRIX_MAX_PART,
                 MatrixService.MATRIX_MAX_PART,
                 response.partialMatrix()));
@@ -148,8 +148,8 @@ public class MatrixCommands {
 
         MatrixSortResponse response = matrixService.runThreadPoolMatrixSort();
 
-        console.success(String.format("Алгоритм с ThreadPoolExecutor успешно закончил работу за %s сек.\n Матрица (часть %dx%d):\n%s",
-                response.time(),
+        console.success(String.format("Алгоритм с ThreadPoolExecutor успешно закончил работу за %.3f мс.\n Матрица (часть %dx%d):\n%s",
+                response.time().toNanos() / 1_000_000.0,
                 MatrixService.MATRIX_MAX_PART,
                 MatrixService.MATRIX_MAX_PART,
                 response.partialMatrix()));
@@ -162,8 +162,8 @@ public class MatrixCommands {
         MatrixSortResponse response = matrixService.runForkJoinMatrixSort();
 
 
-        console.success(String.format("Алгоритм с ForkJoinPoll успешно закончил работу за %s сек.\n Матрица (часть %dx%d):\n%s",
-                response.time(),
+        console.success(String.format("Алгоритм с ForkJoinPoll успешно закончил работу за %.3f мс.\n Матрица (часть %dx%d):\n%s",
+                response.time().toNanos() / 1_000_000.0,
                 MatrixService.MATRIX_MAX_PART,
                 MatrixService.MATRIX_MAX_PART,
                 response.partialMatrix()));
