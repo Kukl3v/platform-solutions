@@ -7,6 +7,7 @@ import org.springframework.shell.jline.tui.component.flow.ComponentFlow.Componen
 import org.springframework.shell.jline.tui.component.flow.ComponentFlow.Builder;
 import org.springframework.stereotype.Component;
 import ru.kuklev.app.dto.MatrixGenerateRequest;
+import ru.kuklev.app.dto.MatrixSortResponse;
 import ru.kuklev.app.service.MatrixService;
 import ru.kuklev.app.util.Console;
 
@@ -35,6 +36,8 @@ public class MatrixCommands {
         while (true) {
             console.clear();
 
+            console.print("Вариант: Упорядочить столбцы матрицы по возрастанию наименьших элементов\n");
+
             console.print("Статус матрицы:");
 
             if (matrixService.isMatrixExist()) {
@@ -50,6 +53,9 @@ public class MatrixCommands {
                     .selectItem("Сгенерировать", "generate")
                     .selectItem("Вывести", "print")
                     .selectItem("Очистить", "clear")
+                    .selectItem("Запустить однопоточный алгоритм", "sequentialAlg")
+                    .selectItem("Запустить параллельный алгоритм с ThreadPoolExecutor", "threadPoolAlg")
+                    .selectItem("Запустить параллельный алгоритм с ForkJoinPoll", "forkJoinAlg")
                     .selectItem("Выйти", "exit")
                     .and()
                     .build()
@@ -64,6 +70,9 @@ public class MatrixCommands {
                 case "generate" -> generate();
                 case "print" -> print();
                 case "clear" -> clear();
+                case "sequentialAlg" -> sequentialAlg();
+                case "threadPoolAlg" -> threadPoolAlg();
+                case "forkJoinAlg" -> forkJoinAlg();
                 case "exit" -> { return; }
             }
         }
@@ -93,10 +102,6 @@ public class MatrixCommands {
                     .defaultValue(100)
                     .numberClass(Integer.class)
                     .and()
-                .withConfirmationInput("isFractional")
-                    .name("Использовать дробные числа?")
-                    .defaultValue(false)
-                    .and()
                 .build()
                 .run();
 
@@ -106,8 +111,7 @@ public class MatrixCommands {
                 context.get("rows", Integer.class),
                 context.get("cols", Integer.class),
                 context.get("minNum", Integer.class),
-                context.get("maxNum", Integer.class),
-                context.get("isFractional", Boolean.class)
+                context.get("maxNum", Integer.class)
         );
 
         Set<ConstraintViolation<MatrixGenerateRequest>> violations = validator.validate(request);
@@ -126,6 +130,46 @@ public class MatrixCommands {
         console.back();
     }
 
+    @Command(name = "sequentialAlg", description = "Однопоточный алгоритм")
+    public void sequentialAlg() {
+
+        MatrixSortResponse response = matrixService.runSeqMatrixSort();
+
+        console.success(String.format("Однопоточный алгоритм успешно закончил работу за %s сек.\n Матрица (часть %dx%d):\n%s",
+                response.time(),
+                MatrixService.MATRIX_MAX_PART,
+                MatrixService.MATRIX_MAX_PART,
+                response.partialMatrix()));
+        console.back();
+    }
+
+    @Command(name = "threadPoolAlg", description = "Параллельный алгоритм ThreadPoolExecutor")
+    public void threadPoolAlg() {
+
+        MatrixSortResponse response = matrixService.runThreadPoolMatrixSort();
+
+        console.success(String.format("Алгоритм с ThreadPoolExecutor успешно закончил работу за %s сек.\n Матрица (часть %dx%d):\n%s",
+                response.time(),
+                MatrixService.MATRIX_MAX_PART,
+                MatrixService.MATRIX_MAX_PART,
+                response.partialMatrix()));
+        console.back();
+    }
+
+    @Command(name = "forkJoinAlg", description = "Параллельный алгоритм ForkJoinPoll")
+    public void forkJoinAlg() {
+
+        MatrixSortResponse response = matrixService.runForkJoinMatrixSort();
+
+
+        console.success(String.format("Алгоритм с ForkJoinPoll успешно закончил работу за %s сек.\n Матрица (часть %dx%d):\n%s",
+                response.time(),
+                MatrixService.MATRIX_MAX_PART,
+                MatrixService.MATRIX_MAX_PART,
+                response.partialMatrix()));
+        console.back();
+    }
+
     @Command(name = "clear", description = "Очистить матрицу")
     public void clear() {
         matrixService.clearMatrix();
@@ -138,7 +182,10 @@ public class MatrixCommands {
     public void print() {
         try {
             String matrix = matrixService.getPartialMatrix();
-            console.print(String.format("Матрица (часть 10x10):\n%s", matrix));
+            console.print(String.format("Матрица (часть %dx%d):\n%s",
+                    MatrixService.MATRIX_MAX_PART,
+                    MatrixService.MATRIX_MAX_PART,
+                    matrix));
         } catch (Exception e) {
             console.error(e.getMessage());
         }

@@ -1,0 +1,4 @@
+package ru.kuklev.app.algorithm;
+
+public class ForkJoinMatrixSorter {
+}

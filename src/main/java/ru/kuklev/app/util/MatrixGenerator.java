@@ -22,19 +22,4 @@ public class MatrixGenerator {
 
         return matrix;
     }
-
-    public double[][] generate(int rows,
-                               int cols,
-                               double minNum,
-                               double maxNum) {
-        double[][] matrix = new double[rows][cols];
-
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                matrix[i][j] = random.nextDouble(minNum, maxNum);
-            }
-        }
-
-        return matrix;
-    }
 }

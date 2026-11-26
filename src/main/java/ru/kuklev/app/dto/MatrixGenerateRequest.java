@@ -15,8 +15,7 @@ public record MatrixGenerateRequest(@Min(value = 1, message = "Количест�
                                     int minNum,
                                     @Min(value = -10_000, message = "Максимальное значение случайного числа не может быть меньше {value}")
                                     @Max(value = 10_000, message = "Максимальное значение случайного числа не может быть больше {value}")
-                                    int maxNum,
-                                    boolean isFractional) {
+                                    int maxNum) {
 
     @AssertTrue(message = "Минимальное число должно быть меньше или равно максимальному")
     public boolean isValidRange() {
